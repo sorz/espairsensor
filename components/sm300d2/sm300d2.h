@@ -1,12 +1,12 @@
-#ifndef _LIB_SENSOR_H_
-#define _LIB_SENSOR_H_
+#ifndef _LIB_SM300D2_H_
+#define _LIB_SM300D2_H_
 
 #include "stdint.h"
 #include "stdbool.h"
 #include "freertos/FreeRTOS.h"
 
-#define SENSOR_ADDRESS (0x3c)
-#define SENSOR_VERSION (0x02)
+#define SM300D2_ADDRESS (0x3c)
+#define SM300D2_VERSION (0x02)
 
 typedef struct {
     uint8_t address;
@@ -21,7 +21,7 @@ typedef struct {
     uint8_t humi_int;
     uint8_t humi_frac;
     uint8_t checksum;
-} __attribute__((packed)) sensor_packet_t;
+} __attribute__((packed)) sm300d2_packet_t;
 
 typedef struct
 {
@@ -32,17 +32,17 @@ typedef struct
     uint16_t pm10;
     uint16_t temp_centi;
     uint16_t humi_centi;
-} sensor_data_t;
+} sm300d2_data_t;
 
-bool sensor_check_packet(sensor_packet_t* packet);
+bool sm300d2_check_packet(sm300d2_packet_t* packet);
 
-void sensor_parse_data(sensor_packet_t* packet, sensor_data_t* data);
+void sm300d2_parse_data(sm300d2_packet_t* packet, sm300d2_data_t* data);
 
-void sensor_init();
+void sm300d2_init();
 
-void sensor_receive_task();
+void sm300d2_receive_task();
 
-bool sensor_read_data(sensor_data_t* data, TickType_t xTicksToWait);
+bool sm300d2_read_data(sm300d2_data_t* data, TickType_t xTicksToWait);
 
 
-#endif /* _LIB_SENSOR_H_ */
+#endif /* _LIB_SM300D2_H_ */

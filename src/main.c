@@ -1,5 +1,5 @@
-#include "sensor.h"
+#include "sm300d2.h"
 
 void app_main() {
-    sensor_init();
+    sm300d2_init();
 }
