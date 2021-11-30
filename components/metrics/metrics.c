@@ -9,7 +9,7 @@
 #include "esp_http_server.h"
 
 
-static const char* TAG = "prometheus";
+static const char* TAG = "metrics";
 
 static int wifi_retry_num    = 0;
 static nvs_handle_t nvs_esp  = 0;
@@ -18,9 +18,10 @@ static httpd_handle_t httpd  = NULL;
 #define WIFI_CONNECTED_BIT      BIT0
 #define WIFI_FAIL_BIT           BIT1
 
-#define HOSTNAME  (CONFIG_PROMETHEUS_HOSTNAME)
-#define WIFI_SSID (CONFIG_PROMETHEUS_WIFI_SSID)
-#define WIFI_PSK  (CONFIG_PROMETHEUS_WIFI_PSK)
+#define HOSTNAME  (CONFIG_METRICS_HOSTNAME)
+#define WIFI_SSID (CONFIG_METRICS_WIFI_SSID)
+#define WIFI_PSK  (CONFIG_METRICS_WIFI_PSK)
+#define HTTP_PATH (CONFIG_METRICS_HTTP_PATH)
 
 void init_nvs() {
     // Initialize NVS
@@ -35,16 +36,16 @@ void init_nvs() {
     ESP_ERROR_CHECK(nvs_open(TAG, NVS_READWRITE, &nvs_esp));
 }
 
-static esp_err_t root_get_handler(httpd_req_t *req) {
-    httpd_resp_set_type(req, "text/plain");
-    httpd_resp_sendstr(req, "Hello, world!~\n");
+static esp_err_t http_request_handler(httpd_req_t *req) {
+    httpd_resp_set_type(req, "application/openmetrics-text");
+    httpd_resp_sendstr(req, "# EOF");
     return ESP_OK;
 }
 
 static const httpd_uri_t endpoint_root_get = {
-    .uri       = "/",
+    .uri       = HTTP_PATH,
     .method    = HTTP_GET,
-    .handler   = root_get_handler
+    .handler   = http_request_handler
 };
 
 static httpd_handle_t start_webserver(void) {
@@ -134,7 +135,7 @@ void init_wifi() {
 }
 
 
-void prometheus_init() {
+void metrics_init() {
     init_nvs();
     init_wifi();
 }

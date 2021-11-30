@@ -1,7 +1,7 @@
 #include "sm300d2.h"
-#include "prometheus.h"
+#include "metrics.h"
 
 void app_main() {
     sm300d2_init();
-    prometheus_init();
+    metrics_init();
 }

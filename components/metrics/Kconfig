@@ -1,19 +1,25 @@
-menu "Prometheus Exporter"
+menu "OpenMetrics Exporter"
 
-    config PROMETHEUS_HOSTNAME
+    config METRICS_HOSTNAME
         string "Hostname"
         default "esp-airsensor"
         help
             Device's hostname for networking. Maximum length 32 bytes.
 
-    config PROMETHEUS_WIFI_SSID
+    config METRICS_WIFI_SSID
         string "Wi-Fi SSID"
         help
             SSID of target AP. Maximum length 32 bytes.
 
-    config PROMETHEUS_WIFI_PSK
+    config METRICS_WIFI_PSK
         string "Wi-Fi Password"
         help
             PSK of target AP. Maximum length 64 bytes.
+
+    config METRICS_HTTP_PATH
+        string "HTTP Endpoint Path"
+        default "/"
+        help
+            Put exporter on that page.
 
 endmenu
