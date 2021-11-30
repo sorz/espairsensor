@@ -4,6 +4,9 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+#define SENSOR_ADDRESS (0x3c)
+#define SENSOR_VERSION (0x02)
+
 typedef struct {
     uint8_t address;
     uint8_t version;
@@ -30,11 +33,12 @@ typedef struct
     uint16_t humi_centi;
 } sensor_data_t;
 
-
 bool sensor_check_packet(sensor_packet_t* packet);
 
 void sensor_parse_data(sensor_packet_t* packet, sensor_data_t* data);
 
 void sensor_init();
+
+void sensor_receive_task();
 
 #endif /* _LIB_SENSOR_H_ */

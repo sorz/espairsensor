@@ -1,6 +1,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "endian.h"
+#include "esp_log.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
 
@@ -8,9 +9,13 @@
 
 
 #define SENSOR_PORT_NUM         (CONFIG_SENSOR_UART_PORT_NUM)
-#define SENSOR_BAUD_RATE        9600
+#define SENSOR_BAUD_RATE        (9600)
 #define SENSOR_RXD_PIN          (CONFIG_SENSOR_UART_RXD)
 #define SENSOR_TASK_STACK_SIZE  (CONFIG_SENSOR_TASK_STACK_SIZE)
+
+#define BUF_SIZE 
+
+static const char *TAG = "SENSOR";
 
 bool sensor_check_packet(sensor_packet_t* packet) {
     uint8_t sum = 0x00;
@@ -51,3 +56,31 @@ void sensor_init() {
     ESP_ERROR_CHECK(uart_set_pin(SENSOR_PORT_NUM, UART_PIN_NO_CHANGE, SENSOR_RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 }
 
+void sensor_receive_task() {
+    sensor_packet_t pkt;
+    sensor_data_t data;
+
+    while (true) {
+        int len = uart_read_bytes(SENSOR_PORT_NUM, &pkt, sizeof(pkt), 1000 / portTICK_RATE_MS);
+        if (len < 0) {
+            ESP_LOGW(TAG, "UART read failed, return %d", len);
+            continue;
+        }
+        if (len == 0) continue;
+        if (len < sizeof(pkt)) {
+            ESP_LOGW(TAG, "UART insufficed bytes read (%d < %d)", len, sizeof(pkt));
+            continue;
+        }
+        if (pkt.address != SENSOR_ADDRESS || !sensor_check_packet(&pkt)) {
+            ESP_LOGW(TAG, "Frame with wrong checksum or header");
+            continue;
+        }
+        if (pkt.version != SENSOR_VERSION) {
+            ESP_LOGW(TAG, "Unsupport version: %d", pkt.version);
+            continue;
+        }
+        sensor_parse_data(&pkt, &data);
+
+
+    }
+}
