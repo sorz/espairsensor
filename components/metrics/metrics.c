@@ -1,6 +1,7 @@
 #include "math.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "freertos/event_groups.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
@@ -17,16 +18,13 @@
 #define WIFI_SSID (CONFIG_METRICS_WIFI_SSID)
 #define WIFI_PSK  (CONFIG_METRICS_WIFI_PSK)
 #define HTTP_PATH (CONFIG_METRICS_HTTP_PATH)
-#define MAX_ITEMS (CONFIG_METRICS_MAX_ITEMS)
 
 static const char* TAG       = "metrics";
 
 static int wifi_retry_num    = 0;
 static nvs_handle_t nvs_esp  = 0;
 static httpd_handle_t httpd  = NULL;
-
-static metric_t metrics[MAX_ITEMS];
-static size_t metrics_num  = 0;
+static metric_list_t metrics = {};
 
 void init_nvs() {
     // Initialize NVS
@@ -43,9 +41,10 @@ void init_nvs() {
 
 static esp_err_t http_request_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "application/openmetrics-text");
+    xSemaphoreTake(metrics.semphr, portMAX_DELAY);
 
-    for (size_t i = 0; i < metrics_num; i++) {
-        metric_t m = metrics[i];
+    for (size_t i = 0; i < metrics.len; i++) {
+        metric_t m = metrics.items[i];
         if (m.help != NULL) {
             httpd_resp_sendstr_chunk(req, "# HELP ");
             httpd_resp_sendstr_chunk(req, m.name);
@@ -74,6 +73,7 @@ static esp_err_t http_request_handler(httpd_req_t *req) {
     }
 
     httpd_resp_sendstr(req, "# EOF");
+    xSemaphoreGive(metrics.semphr);
     return ESP_OK;
 }
 
@@ -173,19 +173,31 @@ void init_wifi() {
 void metrics_init() {
     init_nvs();
     init_wifi();
+    metrics_list_init(&metrics);
+}
+
+void metrics_list_init(metric_list_t *list) {
+    list->len = 0;
+    list->semphr = xSemaphoreCreateBinary();
+    assert(list->semphr != NULL);
 }
 
 void metrics_put(metric_t* metric) {
-    for (size_t i = 0; i < metrics_num; i++) {
-        if (metrics[i].name == metric->name) {
-            metrics[i] = *metric;
+    xSemaphoreTake(metrics.semphr, portMAX_DELAY);
+
+    for (size_t i = 0; i < metrics.len; i++) {
+        if (metrics.items[i].name == metric->name) {
+            metrics.items[i] = *metric;
+            xSemaphoreGive(metrics.semphr);
             return;
         }
     }
-    if (metrics_num >= MAX_ITEMS) {
+    if (metrics.len >= METRICS_MAX_NUM) {
         ESP_LOGE(TAG, "Maximum metrics number reached, ignore %s", metric->name);
+        xSemaphoreGive(metrics.semphr);
         return;
     }
-    metrics[metrics_num] = *metric;
-    metrics_num ++;
+    metrics.items[metrics.len] = *metric;
+    metrics.len ++;
+    xSemaphoreGive(metrics.semphr);
 }
