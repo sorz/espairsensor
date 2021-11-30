@@ -178,7 +178,7 @@ void metrics_init() {
 
 void metrics_list_init(metric_list_t *list) {
     list->len = 0;
-    list->semphr = xSemaphoreCreateBinary();
+    list->semphr = xSemaphoreCreateMutex();
     assert(list->semphr != NULL);
 }
 

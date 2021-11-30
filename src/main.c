@@ -1,5 +1,10 @@
+#include "esp_log.h"
+
 #include "sm300d2.h"
 #include "metrics.h"
+
+static const char* TAG = "main";
+
 
 void app_main() {
     sm300d2_init();
