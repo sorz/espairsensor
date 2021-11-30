@@ -22,4 +22,11 @@ menu "OpenMetrics Exporter"
         help
             Put exporter on that page.
 
+    config METRICS_MAX_ITEMS
+        int "Maximum number of items"
+        default 32
+        range 1 65535
+        help
+           Buffer size of metric list in terms of item.
+
 endmenu

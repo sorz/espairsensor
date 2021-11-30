@@ -7,13 +7,8 @@
 #include "esp_event.h"
 #include "nvs_flash.h"
 #include "esp_http_server.h"
+#include "metrics.h"
 
-
-static const char* TAG = "metrics";
-
-static int wifi_retry_num    = 0;
-static nvs_handle_t nvs_esp  = 0;
-static httpd_handle_t httpd  = NULL;
 
 #define WIFI_CONNECTED_BIT      BIT0
 #define WIFI_FAIL_BIT           BIT1
@@ -22,6 +17,16 @@ static httpd_handle_t httpd  = NULL;
 #define WIFI_SSID (CONFIG_METRICS_WIFI_SSID)
 #define WIFI_PSK  (CONFIG_METRICS_WIFI_PSK)
 #define HTTP_PATH (CONFIG_METRICS_HTTP_PATH)
+#define MAX_ITEMS (CONFIG_METRICS_MAX_ITEMS)
+
+static const char* TAG       = "metrics";
+
+static int wifi_retry_num    = 0;
+static nvs_handle_t nvs_esp  = 0;
+static httpd_handle_t httpd  = NULL;
+
+static metric_t metrics[MAX_ITEMS];
+static size_t metrics_num  = 0;
 
 void init_nvs() {
     // Initialize NVS
@@ -38,6 +43,36 @@ void init_nvs() {
 
 static esp_err_t http_request_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "application/openmetrics-text");
+
+    for (size_t i = 0; i < metrics_num; i++) {
+        metric_t m = metrics[i];
+        if (m.help != NULL) {
+            httpd_resp_sendstr_chunk(req, "# HELP ");
+            httpd_resp_sendstr_chunk(req, m.name);
+            httpd_resp_sendstr_chunk(req, " ");
+            httpd_resp_sendstr_chunk(req, m.help);
+            httpd_resp_sendstr_chunk(req, "\n");
+        }
+        httpd_resp_sendstr_chunk(req, "# TYPE ");
+        httpd_resp_sendstr_chunk(req, m.name);
+        httpd_resp_sendstr_chunk(req, " ");
+        httpd_resp_sendstr_chunk(req, m.type);
+        httpd_resp_sendstr_chunk(req, "\n");
+        if (m.unit != NULL) {
+            httpd_resp_sendstr_chunk(req, "# UNIT ");
+            httpd_resp_sendstr_chunk(req, m.name);
+            httpd_resp_sendstr_chunk(req, " ");
+            httpd_resp_sendstr_chunk(req, m.unit);
+            httpd_resp_sendstr_chunk(req, "\n");
+        }
+        httpd_resp_sendstr_chunk(req, m.name);
+        httpd_resp_sendstr_chunk(req, "{host=");
+        httpd_resp_sendstr_chunk(req, HOSTNAME);
+        httpd_resp_sendstr_chunk(req, "} ");
+        httpd_resp_sendstr_chunk(req, m.value);
+        httpd_resp_sendstr_chunk(req, "\n\n");
+    }
+
     httpd_resp_sendstr(req, "# EOF");
     return ESP_OK;
 }
@@ -138,4 +173,19 @@ void init_wifi() {
 void metrics_init() {
     init_nvs();
     init_wifi();
+}
+
+void metrics_put(metric_t* metric) {
+    for (size_t i = 0; i < metrics_num; i++) {
+        if (metrics[i].name == metric->name) {
+            metrics[i] = *metric;
+            return;
+        }
+    }
+    if (metrics_num >= MAX_ITEMS) {
+        ESP_LOGE(TAG, "Maximum metrics number reached, ignore %s", metric->name);
+        return;
+    }
+    metrics[metrics_num] = *metric;
+    metrics_num ++;
 }
