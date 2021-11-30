@@ -1103,6 +1103,14 @@ CONFIG_WPA_MBEDTLS_CRYPTO=y
 # CONFIG_WPA_WPS_WARS is not set
 # CONFIG_WPA_11KV_SUPPORT is not set
 # end of Supplicant
+
+#
+# SM300D2 Air Quality Sensor
+#
+CONFIG_SENSOR_UART_PORT_NUM=2
+CONFIG_SENSOR_UART_RXD=5
+CONFIG_SENSOR_TASK_STACK_SIZE=2048
+# end of SM300D2 Air Quality Sensor
 # end of Component config
 
 #

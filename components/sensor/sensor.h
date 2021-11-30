@@ -35,5 +35,6 @@ bool sensor_check_packet(sensor_packet_t* packet);
 
 void sensor_parse_data(sensor_packet_t* packet, sensor_data_t* data);
 
+void sensor_init();
 
 #endif /* _LIB_SENSOR_H_ */
