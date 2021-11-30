@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 #include "stdbool.h"
+#include "freertos/FreeRTOS.h"
 
 #define SENSOR_ADDRESS (0x3c)
 #define SENSOR_VERSION (0x02)
@@ -40,5 +41,8 @@ void sensor_parse_data(sensor_packet_t* packet, sensor_data_t* data);
 void sensor_init();
 
 void sensor_receive_task();
+
+bool sensor_read_data(sensor_data_t* data, TickType_t xTicksToWait);
+
 
 #endif /* _LIB_SENSOR_H_ */
