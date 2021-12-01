@@ -16,7 +16,7 @@ typedef struct {
     uint16_t tvoc_be;
     uint16_t pm2_5_be;
     uint16_t pm10_be;
-    uint8_t temp_int;
+    int8_t temp_int;
     uint8_t temp_frac;
     uint8_t humi_int;
     uint8_t humi_frac;
@@ -25,13 +25,13 @@ typedef struct {
 
 typedef struct
 {
-    uint16_t e_co2;
-    uint16_t e_ch2o;
-    uint16_t tvoc;
-    uint16_t pm2_5;
-    uint16_t pm10;
-    uint16_t temp_centi;
-    uint16_t humi_centi;
+    uint32_t e_co2;
+    uint32_t e_ch2o;
+    uint32_t tvoc;
+    uint32_t pm2_5;
+    uint32_t pm10;
+    int32_t temp_centi;
+    uint32_t humi_centi;
 } sm300d2_data_t;
 
 bool sm300d2_check_packet(sm300d2_packet_t* packet);

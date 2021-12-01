@@ -1,7 +1,9 @@
 #include "stdint.h"
 #include "stdbool.h"
+#include "string.h"
 #include "endian.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
@@ -10,10 +12,11 @@
 #include "sm300d2.h"
 
 
-#define SM300D2_PORT_NUM         (CONFIG_SM300D2_UART_PORT_NUM)
-#define SM300D2_BAUD_RATE        (9600)
-#define SM300D2_RXD_PIN          (CONFIG_SM300D2_UART_RXD)
-#define SM300D2_TASK_STACK_SIZE  (CONFIG_SM300D2_TASK_STACK_SIZE)
+#define PORT_NUM         (CONFIG_SM300D2_UART_PORT_NUM)
+#define BAUD_RATE        (9600)
+#define RXD_PIN          (CONFIG_SM300D2_UART_RXD)
+#define TASK_STACK_SIZE  (CONFIG_SM300D2_TASK_STACK_SIZE)
+#define AGGREGATION_SECS (CONFIG_SM300D2_AGGREGATION_SECS)
 
 #define BUF_SIZE 
 
@@ -42,7 +45,7 @@ void sm300d2_parse_data(sm300d2_packet_t* packet, sm300d2_data_t* data) {
 
 void sm300d2_init() {
     uart_config_t uart_config = {
-        .baud_rate = SM300D2_BAUD_RATE,
+        .baud_rate = BAUD_RATE,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
@@ -55,26 +58,49 @@ void sm300d2_init() {
     intr_alloc_flags = ESP_INTR_FLAG_IRAM;
 #endif
 
-    ESP_ERROR_CHECK(uart_driver_install(SM300D2_PORT_NUM, UART_FIFO_LEN * 2, 0, 0, NULL, intr_alloc_flags));
-    ESP_ERROR_CHECK(uart_param_config(SM300D2_PORT_NUM, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(SM300D2_PORT_NUM, UART_PIN_NO_CHANGE, SM300D2_RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    ESP_ERROR_CHECK(uart_driver_install(PORT_NUM, UART_FIFO_LEN * 2, 0, 0, NULL, intr_alloc_flags));
+    ESP_ERROR_CHECK(uart_param_config(PORT_NUM, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(PORT_NUM, UART_PIN_NO_CHANGE, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
     data_queue = xQueueCreate(1, sizeof(sm300d2_data_t));
     assert(data_queue != 0);
 
-    BaseType_t ret = xTaskCreate(sm300d2_receive_task, "sensor_receive_task", SM300D2_TASK_STACK_SIZE, NULL, 10, NULL);
+    BaseType_t ret = xTaskCreate(sm300d2_receive_task, "sensor_receive_task", TASK_STACK_SIZE, NULL, 10, NULL);
     assert(ret == pdPASS);
 }
 
 void sm300d2_receive_task() {
     sm300d2_packet_t pkt;
     sm300d2_data_t data;
+    sm300d2_data_t pts_sum = {};
+    size_t pts_count = 0;
+    int64_t pts_since_ms = esp_timer_get_time() / 1000;
 
     assert(data_queue != NULL);
     ESP_LOGI(TAG, "Listening sensor data...");
 
     while (true) {
-        int len = uart_read_bytes(SM300D2_PORT_NUM, &pkt, sizeof(pkt), portMAX_DELAY);
+        int64_t now_ms = esp_timer_get_time() / 1000;
+        int64_t wait_ms = AGGREGATION_SECS * 1000 - (pts_since_ms - now_ms);
+        if (wait_ms <= 0) { // Aggregation period passed
+            ESP_LOGD(TAG, "Aggregating %d data points", pts_count);
+            if (pts_count > 0) { // Data for send exist
+                pts_sum.e_co2 /= pts_count;
+                pts_sum.e_ch2o /= pts_count;
+                pts_sum.tvoc /= pts_count;
+                pts_sum.pm2_5 /= pts_count;
+                pts_sum.pm10 /= pts_count;
+                pts_sum.temp_centi /= pts_count;
+                pts_sum.humi_centi /= pts_count;
+                xQueueOverwrite(data_queue, &pts_sum);
+            }
+            pts_count = 0;
+            memset(&pts_sum, 0, sizeof(pts_sum));
+            pts_since_ms = esp_timer_get_time() / 1000;
+            continue;
+        }
+
+        int len = uart_read_bytes(PORT_NUM, &pkt, sizeof(pkt), wait_ms / portTICK_RATE_MS);
         if (len < 0) {
             ESP_LOGW(TAG, "UART read failed, return %d", len);
             continue;
@@ -93,7 +119,14 @@ void sm300d2_receive_task() {
             continue;
         }
         sm300d2_parse_data(&pkt, &data);
-        xQueueOverwrite(data_queue, &data);
+        pts_sum.e_co2 += data.e_co2;
+        pts_sum.e_ch2o += data.e_ch2o;
+        pts_sum.tvoc += data.tvoc;
+        pts_sum.pm2_5 += data.pm2_5;
+        pts_sum.pm10 += data.pm10;
+        pts_sum.temp_centi += data.temp_centi;
+        pts_sum.humi_centi += data.humi_centi;
+        pts_count++;
     }
 }
 

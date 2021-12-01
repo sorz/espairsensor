@@ -28,4 +28,11 @@ menu "SM300D2 Air Quality Sensor"
         help
             Defines stack size for SM300D2 sensor. Insufficient stack size can cause crash.
 
+    config SM300D2_AGGREGATION_SECS
+        int "Aggregation period (seconds)"
+        range 1 3600
+        default 10
+        help
+            Emit one data point every such seconds. Arithmetic mean of points within the period.
+
 endmenu
