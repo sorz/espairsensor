@@ -81,8 +81,8 @@ void sm300d2_receive_task() {
 
     while (true) {
         int64_t now_ms = esp_timer_get_time() / 1000;
-        int64_t wait_ms = AGGREGATION_SECS * 1000 - (pts_since_ms - now_ms);
-        if (wait_ms <= 0) { // Aggregation period passed
+        int64_t wait_ms = AGGREGATION_SECS * 1000 + (pts_since_ms - now_ms);
+        if (wait_ms <= 1) { // Aggregation period passed
             ESP_LOGD(TAG, "Aggregating %d data points", pts_count);
             if (pts_count > 0) { // Data for send exist
                 pts_sum.e_co2 /= pts_count;
@@ -100,7 +100,9 @@ void sm300d2_receive_task() {
             continue;
         }
 
+        ESP_LOGD(TAG, "Read UART, wait for %llims", wait_ms);
         int len = uart_read_bytes(PORT_NUM, &pkt, sizeof(pkt), wait_ms / portTICK_RATE_MS);
+        ESP_LOGD(TAG, "UART read %d", len);
         if (len < 0) {
             ESP_LOGW(TAG, "UART read failed, return %d", len);
             continue;
