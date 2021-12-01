@@ -10,7 +10,7 @@ typedef struct {
     char* help;
     char* type;
     char* unit;
-    char value[16];
+    float value;
 } metric_t;
 
 typedef struct {
