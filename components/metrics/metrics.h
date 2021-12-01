@@ -14,7 +14,7 @@ typedef struct {
 } metric_t;
 
 typedef struct {
-    int64_t update_at;
+    int64_t exipred_at;
     size_t buf_size;
 } metric_meta_t;
 
@@ -27,10 +27,10 @@ typedef struct {
 
 void metrics_init();
 
-void metrics_put(metric_t *metric);
+void metrics_put(metric_t *metric, uint32_t expire_in_mllis);
 
 void metrics_list_init(metric_list_t *list);
 
-void metrics_list_update_at(metric_list_t *list, size_t idx, metric_t *item);
+void metrics_list_update_at(metric_list_t *list, size_t idx, metric_t *item, uint32_t exipred_at);
 
 #endif /* _LIB_METRICS_H_ */

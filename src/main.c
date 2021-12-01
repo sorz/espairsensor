@@ -17,10 +17,10 @@ void app_main() {
         .unit = NULL,
         .value = "0"
     };
-    metrics_put(&test);
+    metrics_put(&test, 5000);
     test.name = "test-2";
-    metrics_put(&test);
+    metrics_put(&test, 5000);
     test.value[0] = '1';
     test.unit = "unit";
-    metrics_put(&test);
+    metrics_put(&test, 20000);
 }

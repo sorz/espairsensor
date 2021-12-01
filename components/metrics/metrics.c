@@ -53,16 +53,17 @@ void init_nvs() {
     }
 
 static esp_err_t http_request_handler(httpd_req_t *req) {
-    size_t buf_size = 0;
+    size_t buf_size = 8;
     size_t buf_pos = 0;
     char* buf = NULL;
+    int64_t now = esp_timer_get_time() / 1000;
 
     httpd_resp_set_type(req, "application/openmetrics-text");
     xSemaphoreTake(metrics.semphr, portMAX_DELAY);
 
-    for (size_t i = 0; i < metrics.len; i++) {
-        buf_size += metrics.meta[i].buf_size;
-    }
+    for (size_t i = 0; i < metrics.len; i++)
+        if (now < metrics.meta[i].exipred_at)
+            buf_size += metrics.meta[i].buf_size;
     buf = malloc(buf_size);
     if (buf == NULL) {
         ESP_LOGE(TAG, "Out of memory");
@@ -71,7 +72,13 @@ static esp_err_t http_request_handler(httpd_req_t *req) {
     }
 
     for (size_t i = 0; i < metrics.len; i++) {
+        metric_meta_t meta = metrics.meta[i];
         metric_t m = metrics.items[i];
+        if (now >= meta.exipred_at) {
+            ESP_LOGD(TAG, "Metric %s expired (%lli >= %lli)", m.name, now, meta.exipred_at);
+            continue;
+        }
+        ESP_LOGD(TAG, "Print metric %s", m.name);
         if (m.help != NULL) buf_printf("# HELP %s %s\n", m.name, m.help);
         if (m.unit != NULL) buf_printf("# UNIT %s %s\n", m.name, m.unit);
         buf_printf("# TYPE %s %s\n", m.name, m.type);
@@ -162,7 +169,7 @@ void init_wifi() {
         .sta = {
             .ssid = WIFI_SSID,
             .password = WIFI_PSK,
-	        .threshold.authmode = WIFI_AUTH_WPA2_WPA3_PSK,
+            .scan_method = WIFI_ALL_CHANNEL_SCAN,
             .pmf_cfg = {
                 .capable = true,
                 .required = false
@@ -189,28 +196,37 @@ void metrics_list_init(metric_list_t *list) {
     assert(list->semphr != NULL);
 }
 
-void metrics_list_update_at(metric_list_t *list, size_t idx, metric_t *item) {
+void metrics_list_update_at(metric_list_t *list, size_t idx, metric_t *item, uint32_t exipred_at) {
     list->items[idx] = *item;
-    list->meta[idx].update_at = esp_timer_get_time();
+    list->meta[idx].exipred_at = exipred_at;
     list->meta[idx].buf_size = 80 + strlen(item->name) * 4 + strlen(item->help) + sizeof(HOSTNAME);
 }
 
-void metrics_put(metric_t* metric) {
+#define put_into_then_return(i) {\
+    metrics_list_update_at(&metrics, (i), metric, now + expire_in_mllis);\
+    xSemaphoreGive(metrics.semphr);\
+    return;\
+}
+
+void metrics_put(metric_t* metric, uint32_t expire_in_mllis) {
+    int64_t now = esp_timer_get_time() / 1000;
     xSemaphoreTake(metrics.semphr, portMAX_DELAY);
 
-    for (size_t i = 0; i < metrics.len; i++) {
-        if (metrics.items[i].name == metric->name) {
-            metrics_list_update_at(&metrics, i, metric);
-            xSemaphoreGive(metrics.semphr);
-            return;
-        }
-    }
+    // Update existing item
+    for (size_t i = 0; i < metrics.len; i++)
+        if (metrics.items[i].name == metric->name)
+            put_into_then_return(i);
+
+    // Replace expired item
+    for (size_t i = 0; i < metrics.len; i++)
+        if (now >= metrics.meta[i].exipred_at)
+            put_into_then_return(i);
+
+    // Append to end
     if (metrics.len >= METRICS_MAX_NUM) {
         ESP_LOGE(TAG, "Maximum metrics number reached, ignore %s", metric->name);
         xSemaphoreGive(metrics.semphr);
         return;
     }
-    metrics_list_update_at(&metrics, metrics.len, metric);
-    metrics.len ++;
-    xSemaphoreGive(metrics.semphr);
+    put_into_then_return(metrics.len++);
 }
