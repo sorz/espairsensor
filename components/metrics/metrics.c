@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
+#include "esp_timer.h"
 #include "nvs_flash.h"
 #include "esp_http_server.h"
 #include "metrics.h"
@@ -39,41 +40,47 @@ void init_nvs() {
     ESP_ERROR_CHECK(nvs_open(TAG, NVS_READWRITE, &nvs_esp));
 }
 
+#define buf_printf(...) {\
+        int n = snprintf(&buf[buf_pos], buf_size - buf_pos, __VA_ARGS__);\
+        if (n < 0) {\
+            xSemaphoreGive(metrics.semphr);\
+            free(buf);\
+            ESP_LOGE(TAG, "Failed to write buffer: %d", n);\
+            return ESP_FAIL;\
+        } else {\
+            buf_pos += n;\
+        }\
+    }
+
 static esp_err_t http_request_handler(httpd_req_t *req) {
+    size_t buf_size = 0;
+    size_t buf_pos = 0;
+    char* buf = NULL;
+
     httpd_resp_set_type(req, "application/openmetrics-text");
     xSemaphoreTake(metrics.semphr, portMAX_DELAY);
 
     for (size_t i = 0; i < metrics.len; i++) {
-        metric_t m = metrics.items[i];
-        if (m.help != NULL) {
-            httpd_resp_sendstr_chunk(req, "# HELP ");
-            httpd_resp_sendstr_chunk(req, m.name);
-            httpd_resp_sendstr_chunk(req, " ");
-            httpd_resp_sendstr_chunk(req, m.help);
-            httpd_resp_sendstr_chunk(req, "\n");
-        }
-        httpd_resp_sendstr_chunk(req, "# TYPE ");
-        httpd_resp_sendstr_chunk(req, m.name);
-        httpd_resp_sendstr_chunk(req, " ");
-        httpd_resp_sendstr_chunk(req, m.type);
-        httpd_resp_sendstr_chunk(req, "\n");
-        if (m.unit != NULL) {
-            httpd_resp_sendstr_chunk(req, "# UNIT ");
-            httpd_resp_sendstr_chunk(req, m.name);
-            httpd_resp_sendstr_chunk(req, " ");
-            httpd_resp_sendstr_chunk(req, m.unit);
-            httpd_resp_sendstr_chunk(req, "\n");
-        }
-        httpd_resp_sendstr_chunk(req, m.name);
-        httpd_resp_sendstr_chunk(req, "{host=");
-        httpd_resp_sendstr_chunk(req, HOSTNAME);
-        httpd_resp_sendstr_chunk(req, "} ");
-        httpd_resp_sendstr_chunk(req, m.value);
-        httpd_resp_sendstr_chunk(req, "\n\n");
+        buf_size += metrics.meta[i].buf_size;
+    }
+    buf = malloc(buf_size);
+    if (buf == NULL) {
+        ESP_LOGE(TAG, "Out of memory");
+        xSemaphoreGive(metrics.semphr);
+        return ESP_FAIL;
     }
 
-    httpd_resp_sendstr(req, "# EOF");
+    for (size_t i = 0; i < metrics.len; i++) {
+        metric_t m = metrics.items[i];
+        if (m.help != NULL) buf_printf("# HELP %s %s\n", m.name, m.help);
+        if (m.unit != NULL) buf_printf("# UNIT %s %s\n", m.name, m.unit);
+        buf_printf("# TYPE %s %s\n", m.name, m.type);
+        buf_printf("%s{host=\"%s\"} %s\n\n", m.name, HOSTNAME, m.value);
+    }
+    buf_printf("# EOF\n");
+    httpd_resp_send(req, buf, buf_pos);
     xSemaphoreGive(metrics.semphr);
+    free(buf);
     return ESP_OK;
 }
 
@@ -113,7 +120,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
             httpd = NULL;
         }
         wifi_retry_num++;
-        if (wifi_retry_num > 10) wifi_retry_num = 10;
+        if (wifi_retry_num > 14) wifi_retry_num = 14;
         int delay_ms = powf(2.0f, wifi_retry_num);
         ESP_LOGI(TAG, "Failed to connect to AP %s, retry in %dms", WIFI_SSID, delay_ms);
         vTaskDelay(delay_ms / portTICK_RATE_MS);
@@ -182,12 +189,18 @@ void metrics_list_init(metric_list_t *list) {
     assert(list->semphr != NULL);
 }
 
+void metrics_list_update_at(metric_list_t *list, size_t idx, metric_t *item) {
+    list->items[idx] = *item;
+    list->meta[idx].update_at = esp_timer_get_time();
+    list->meta[idx].buf_size = 80 + strlen(item->name) * 4 + strlen(item->help) + sizeof(HOSTNAME);
+}
+
 void metrics_put(metric_t* metric) {
     xSemaphoreTake(metrics.semphr, portMAX_DELAY);
 
     for (size_t i = 0; i < metrics.len; i++) {
         if (metrics.items[i].name == metric->name) {
-            metrics.items[i] = *metric;
+            metrics_list_update_at(&metrics, i, metric);
             xSemaphoreGive(metrics.semphr);
             return;
         }
@@ -197,7 +210,7 @@ void metrics_put(metric_t* metric) {
         xSemaphoreGive(metrics.semphr);
         return;
     }
-    metrics.items[metrics.len] = *metric;
+    metrics_list_update_at(&metrics, metrics.len, metric);
     metrics.len ++;
     xSemaphoreGive(metrics.semphr);
 }
