@@ -57,6 +57,12 @@ static esp_err_t http_request_handler(httpd_req_t *req) {
     size_t buf_pos = 0;
     char* buf = NULL;
     int64_t now = esp_timer_get_time() / 1000;
+    uint8_t mac[6];
+    char mac_str[18];
+
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    snprintf(mac_str, sizeof(mac_str), "%02x%02x%02x%02x%02x%02x",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     httpd_resp_set_type(req, "application/openmetrics-text");
     xSemaphoreTake(metrics.semphr, portMAX_DELAY);
@@ -82,7 +88,7 @@ static esp_err_t http_request_handler(httpd_req_t *req) {
         if (m.help != NULL) buf_printf("# HELP %s %s\n", m.name, m.help);
         if (m.unit != NULL) buf_printf("# UNIT %s %s\n", m.name, m.unit);
         buf_printf("# TYPE %s %s\n", m.name, m.type);
-        buf_printf("%s{host=\"%s\"} %f\n\n", m.name, HOSTNAME, m.value);
+        buf_printf("%s{host=\"%s\", mac=\"%s\"} %f\n\n", m.name, HOSTNAME, mac_str, m.value);
     }
     buf_printf("# EOF\n");
     httpd_resp_send(req, buf, buf_pos);
