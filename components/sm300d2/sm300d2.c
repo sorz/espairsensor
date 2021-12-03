@@ -18,8 +18,6 @@
 #define TASK_STACK_SIZE  (CONFIG_SM300D2_TASK_STACK_SIZE)
 #define AGGREGATION_SECS (CONFIG_SM300D2_AGGREGATION_SECS)
 
-#define BUF_SIZE 
-
 static const char *TAG = "SM300D2";
 
 static QueueHandle_t data_queue = NULL;
@@ -56,10 +54,6 @@ void sm300d2_init() {
         .source_clk = UART_SCLK_APB,
     };
     int intr_alloc_flags = 0;
-
-#if CONFIG_UART_ISR_IN_IRAM
-    intr_alloc_flags = ESP_INTR_FLAG_IRAM;
-#endif
 
     ESP_ERROR_CHECK(uart_driver_install(PORT_NUM, UART_FIFO_LEN * 2, 0, 0, NULL, intr_alloc_flags));
     ESP_ERROR_CHECK(uart_param_config(PORT_NUM, &uart_config));

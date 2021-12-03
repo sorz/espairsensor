@@ -39,7 +39,7 @@ uint16_t crc16(const uint8_t *data, size_t length) {
     0X8201, 0X42C0, 0X4380, 0X8341, 0X4100, 0X81C1, 0X8081, 0X4040 };
 
     uint8_t temp;
-    uint8_t crc = 0xffff;
+    uint16_t crc = 0xffff;
     while (length--) {
       temp = *data++ ^ crc;
       crc >>= 8;

@@ -38,7 +38,7 @@ static const uint8_t MODBUS_READ_CO2[] = {
     0x04, // Function: read input registers
     0x00, 0x03, // Register num: space CO2
     0x00, 0x01, // Quantity of registers
-    0x25, 0xc5, // CRC checksum
+    0xd5, 0xc5, // CRC checksum
 };
 
 int16_t sense_air_s8_read() {
