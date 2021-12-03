@@ -26,7 +26,7 @@ static QueueHandle_t data_queue = NULL;
 
 bool sm300d2_check_packet(sm300d2_packet_t* packet) {
     uint8_t sum = 0x00;
-    for (uint8_t i = 0; i < sizeof(packet) - 1; i++)
+    for (uint8_t i = 0; i < sizeof(*packet) - 1; i++)
     {
         sum += ((uint8_t*) packet)[i];
     }
@@ -112,8 +112,12 @@ void sm300d2_receive_task() {
             ESP_LOGW(TAG, "UART insufficed bytes read (%d < %d)", len, sizeof(pkt));
             continue;
         }
-        if (pkt.address != SM300D2_ADDRESS || !sm300d2_check_packet(&pkt)) {
-            ESP_LOGW(TAG, "Frame with wrong checksum or header");
+        if (pkt.address != SM300D2_ADDRESS) {
+            ESP_LOGW(TAG, "Frame with wrong header address %x", pkt.address);
+            continue;
+        }
+        if (!sm300d2_check_packet(&pkt)) {
+            ESP_LOGW(TAG, "Frame with wrong checksum");
             continue;
         }
         if (pkt.version != SM300D2_VERSION) {
