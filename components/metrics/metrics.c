@@ -88,7 +88,7 @@ static esp_err_t http_request_handler(httpd_req_t *req) {
         if (m.help != NULL) buf_printf("# HELP %s %s\n", m.name, m.help);
         if (m.unit != NULL) buf_printf("# UNIT %s %s\n", m.name, m.unit);
         buf_printf("# TYPE %s %s\n", m.name, m.type);
-        buf_printf("%s{host=\"%s\", mac=\"%s\"} %.*f\n\n", m.name, HOSTNAME, mac_str, m.precision, m.value);
+        buf_printf("%s{host=\"%s\",mac=\"%s\"} %.*f\n", m.name, HOSTNAME, mac_str, m.precision, m.value);
     }
     buf_printf("# EOF\n");
     httpd_resp_send(req, buf, buf_pos);

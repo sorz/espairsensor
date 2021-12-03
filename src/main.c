@@ -28,20 +28,20 @@ void task_sm300d2() {
             continue;
         ESP_LOGD(TAG, "SM300D2 CO2=%d CH2O=...", data.e_co2);
         metric.precision = 0;
-        put_metric(data.e_co2, "espair_sm300d2_co2", "ppm");
-        put_metric(data.e_ch2o, "espair_sm300d2_ch2o", "ug/m^3");
-        put_metric(data.tvoc, "espair_sm300d2_tvoc", "ug/m^3");
-        put_metric(data.pm2_5, "espair_sm300d2_pm2-5", "ug/m^3");
-        put_metric(data.pm10, "espair_sm300d2_pm10", "ug/m^3");
+        put_metric(data.e_co2, "espair_sm300d2_co2_ppm", "ppm");
+        put_metric(data.e_ch2o, "espair_sm300d2_ch2o_ug_m3", "ug_m3");
+        put_metric(data.tvoc, "espair_sm300d2_tvoc_ug_m3", "ug_m3");
+        put_metric(data.pm2_5, "espair_sm300d2_pm25_ug_m3", "ug_m3");
+        put_metric(data.pm10, "espair_sm300d2_pm10_ug_m3", "ug_m3");
         metric.precision = 2;
-        put_metric(data.temp_centi / 100.0f, "sm300d2_temp", "°C");
-        put_metric(data.humi_centi / 100.0f, "sm300d2_humi", "%");
+        put_metric(data.temp_centi / 100.0f, "sm300d2_temp_celsius", "celsius");
+        put_metric(data.humi_centi / 100.0f, "sm300d2_humi_precent", "precent");
     }
 }
 
 void task_sense_air_s8() {
     metric_t metric = {
-        .name = "espair_senseairs8_co2",
+        .name = "espair_senseairs8_co2_ppm",
         .type = "gauge",
         .unit = "ppm",
         .precision = 0,
