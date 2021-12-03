@@ -205,11 +205,14 @@ void metrics_list_init(metric_list_t *list) {
 void metrics_list_update_at(metric_list_t *list, size_t idx, metric_t *item, uint32_t exipred_at) {
     list->items[idx] = *item;
     list->meta[idx].exipred_at = exipred_at;
-    list->meta[idx].buf_size = 80 + strlen(item->name) * 4 + strlen(item->help) + sizeof(HOSTNAME);
+    list->meta[idx].buf_size = 80 + strlen(item->name) * 4 + sizeof(HOSTNAME);
+    if (item->help != NULL) list->meta[idx].buf_size += strlen(item->help);
 }
 
 #define put_into_then_return(i) {\
-    metrics_list_update_at(&metrics, (i), metric, now + expire_in_mllis);\
+    size_t idx = (i);\
+    ESP_LOGD(TAG, "Put %s to pos %d", metric->name, idx);\
+    metrics_list_update_at(&metrics, idx, metric, now + expire_in_mllis);\
     xSemaphoreGive(metrics.semphr);\
     return;\
 }
