@@ -1,0 +1,35 @@
+menu "SenseAir S8 CO2 Sensor"
+
+    config SENSE_AIR_S8_UART_PORT_NUM
+        int "UART port number"
+        range 0 2 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S3
+        default 1 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S3
+        range 0 1 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32C3
+        default 1 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32C3
+        help
+            UART communication port number for SenseAir sensor.
+            See UART documentation for available port numbers.
+
+    config SENSE_AIR_S8_UART_RXD
+        int "UART RXD pin number"
+        range 0 34 if IDF_TARGET_ESP32
+        range 0 46 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+        range 0 19 if IDF_TARGET_ESP32C3
+        range 0 47 if IDF_TARGET_ESP32S3
+        default 16
+        help
+            GPIO number for UART RX pin. See UART documentation for more information
+            about available pin numbers for UART.
+
+    config SENSE_AIR_S8_UART_TXD
+        int "UART TXD pin number"
+        range 0 34 if IDF_TARGET_ESP32
+        range 0 46 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+        range 0 19 if IDF_TARGET_ESP32C3
+        range 0 47 if IDF_TARGET_ESP32S3
+        default 17
+        help
+            GPIO number for UART TX pin. See UART documentation for more information
+            about available pin numbers for UART.
+
+endmenu
