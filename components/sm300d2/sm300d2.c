@@ -41,6 +41,9 @@ void sm300d2_parse_data(sm300d2_packet_t* packet, sm300d2_data_t* data) {
     data->pm10 = be16toh(packet->pm10_be);
     data->temp_centi = packet->temp_int * 100 + packet->temp_frac;
     data->humi_centi = packet->humi_int * 100 + packet->humi_frac;
+    ESP_LOGD(TAG, "CO2=%d CH2O=%d TVOC=%d PM2.5=%d PM10=%d T=%d H=%d",
+             data->e_co2, data->e_ch2o, data->tvoc, data->pm2_5,
+             data->pm10, data->temp_centi, data->humi_centi);
 }
 
 void sm300d2_init() {
@@ -141,6 +144,6 @@ bool sm300d2_read_data(sm300d2_data_t* data, TickType_t xTicksToWait) {
         ESP_LOGE(TAG, "Queue uninitialized, call sm300d2_init() first");
         return false;
     }
-    BaseType_t ret = xQueueReceive(data_queue, &data, xTicksToWait);
+    BaseType_t ret = xQueueReceive(data_queue, data, xTicksToWait);
     return ret == pdTRUE;
 }

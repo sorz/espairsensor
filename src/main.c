@@ -25,6 +25,7 @@ void task_sm300d2() {
     while (true) {
         if (pdTRUE != sm300d2_read_data(&data, portMAX_DELAY))
             continue;
+        ESP_LOGD(TAG, "SM300D2 CO2=%d CH2O=...", data.e_co2);
         put_metric(data.e_co2, "sm300d2_co2", "ppm");
         put_metric(data.e_ch2o, "sm300d2_ch2o", "ug/m^3");
         put_metric(data.tvoc, "sm300d2_tvoc", "ug/m^3");
