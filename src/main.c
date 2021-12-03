@@ -1,6 +1,7 @@
 #include "esp_log.h"
 
 #include "sm300d2.h"
+#include "sense_air_s8.h"
 #include "metrics.h"
 
 #define TASK_STACK_SIZE     (2048)
@@ -20,7 +21,7 @@ static const char* TAG = "main";
 void task_sm300d2() {
     sm300d2_data_t data;
     metric_t metric = {
-        .type = "gauge"
+        .type = "gauge",
     };
     while (true) {
         if (pdTRUE != sm300d2_read_data(&data, portMAX_DELAY))
@@ -38,9 +39,28 @@ void task_sm300d2() {
     }
 }
 
+void task_sense_air_s8() {
+    metric_t metric = {
+        .name = "senseairs8_co2",
+        .type = "gauge",
+        .unit = "ppm",
+        .precision = 0,
+    };
+    while (true) {
+        int16_t value = sense_air_s8_read();
+        ESP_LOGD(TAG, "SenseAir S8 CO2=%d", value);
+        if (value == -1) continue;
+        metric.value = value;
+        metrics_put(&metric, METRIC_VALID_MILLIS);
+        vTaskDelay(5000 / portTICK_RATE_MS);
+    }
+}
+
 void app_main() {
     sm300d2_init();
+    sense_air_s8_init();
     metrics_init();
 
     xTaskCreate(task_sm300d2, "task_sm300d2", TASK_STACK_SIZE, NULL, 10, NULL);
+    xTaskCreate(task_sense_air_s8, "task_sense_air_s8", TASK_STACK_SIZE, NULL, 10, NULL);
 }
