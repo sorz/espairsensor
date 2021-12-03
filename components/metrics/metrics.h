@@ -11,6 +11,7 @@ typedef struct {
     char* type;
     char* unit;
     float value;
+    uint8_t precision;
 } metric_t;
 
 typedef struct {
