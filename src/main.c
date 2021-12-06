@@ -34,8 +34,8 @@ void task_sm300d2() {
         put_metric(data.pm2_5, "espair_sm300d2_pm25_ug_m3", "ug_m3");
         put_metric(data.pm10, "espair_sm300d2_pm10_ug_m3", "ug_m3");
         metric.precision = 2;
-        put_metric(data.temp_centi / 100.0f, "sm300d2_temp_celsius", "celsius");
-        put_metric(data.humi_centi / 100.0f, "sm300d2_humi_precent", "precent");
+        put_metric(data.temp_centi / 100.0f, "espair_sm300d2_temp_celsius", "celsius");
+        put_metric(data.humi_centi / 100.0f, "espair_sm300d2_humi_precent", "precent");
     }
 }
 
