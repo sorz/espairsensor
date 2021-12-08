@@ -33,7 +33,7 @@ alhought all data are read in this project.
 ## Software
 
 [PlatformIO](https://platformio.org/) (the IDE) and
-[ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/),
+[ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
 (the offical framework of ESP32) were used.
 
 I was trying to make it modular and extensible, to facilitate adding/removing
@@ -68,7 +68,7 @@ Visual Code with PlatformIO plugin.
 
 ### Metrics
 
-The default exporter is on `/metrics`.
+The exporter is on `/metrics` by default.
 
 ```
 $ curl http://<espair-hostname>/metrics
