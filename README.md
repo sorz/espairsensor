@@ -14,6 +14,8 @@ Also, I'm migrating from Graphite to Prometheus for metrics collection.
 At the time, I'm new to embedded development and C programming in general.
 This should be treated as a toy side project, not a serious one :)
 
+<img alt="Top view of assembled case" src="/case/pictures/case_photo_top.webp" width="320" /><img alt="Inside of the semi-assembled case" src="/case/pictures/case_photo_inside.webp" width="320" />
+
 ## Sensors
 
 SM300D2:
@@ -84,7 +86,7 @@ $ curl http://<espair-hostname>/metrics
 
 # Case
 
-<img alt="Rendered case" src="/case/pictures/case_rendered.webp" height="400" /><img alt="Top view of assembled case" src="/case/pictures/case_photo_top.webp" height="400" /><img alt="Inside of the semi-assembled case" src="/case/pictures/case_photo_inside.webp" height="400" />
+<img alt="Rendered case" src="/case/pictures/case_rendered.webp" height="400" />
 
 Files:
 
@@ -96,6 +98,14 @@ Files:
   STL of ESP32 tray
 * [case/espair_cap.stl](/case/espair_cap.stl)\
   STL of rare case cover (Draw by Swin)
+
+Printing:
+
+* Printer: Ender-3 V2
+* Filament: PLA, 1.75mm
+* Resolution: 0.20mm
+* Supports: yes
+* Infill: no effect
 
 The particulate matter sensor was placed outside the case, fasten along with
 the case body and ESP32 tray using two M2 screws & nuts.
