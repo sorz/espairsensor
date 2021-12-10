@@ -8,5 +8,6 @@ typedef struct {
 
 void lywsd02_init();
 
+bool lywsd02_read_data(lywsd02_data_t* data, TickType_t xTicksToWait);
 
 #endif /* _LIB_LYWSD02_H_ */

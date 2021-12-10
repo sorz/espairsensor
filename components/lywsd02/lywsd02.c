@@ -12,14 +12,16 @@
 
 static const char* TAG = "lywsd02";
 
-static uint16_t    CHAR_NOTI_HANDLE  = 0x004c;
-static uint8_t     CHAR_NOTI_VALUE[] = { 0x01, 0x00 };
-static uint16_t    CHAR_DATA_HANDLE  = 0x004b;
-static ble_addr_t  peer_addr;
+static uint16_t CHAR_NOTI_HANDLE  = 0x004c;
+static uint8_t  CHAR_NOTI_VALUE[] = { 0x01, 0x00 };
+static uint16_t CHAR_DATA_HANDLE  = 0x004b;
+
+static ble_addr_t    peer_addr;
+static QueueHandle_t data_queue = NULL;
 
 void ble_scan();
 
-void ble_on_gap_event(struct ble_gap_event *event, void *arg) {
+int ble_on_gap_event(struct ble_gap_event *event, void *arg) {
     if (event->type == BLE_GAP_EVENT_CONNECT) {
         if (event->connect.status == 0) {
             ESP_LOGI(TAG, "BLE connected");
@@ -51,18 +53,17 @@ void ble_on_gap_event(struct ble_gap_event *event, void *arg) {
         ESP_LOGD(TAG, "Notification received from %d, %d bytes", attr_handle, om_len);
         if (attr_handle != CHAR_DATA_HANDLE) {
             ESP_LOGI(TAG, "Unexpected char %d, ignored", attr_handle);
-            return;
+            return 0;
         }
         if (om_len != 3) {
             ESP_LOGW(TAG, "Unexpected char data length %d", om_len);
-            return;
+            return 0;
         }
-        lywsd02_data_t data = *(lywsd02_data_t*) om_data;
-        ESP_LOGD(TAG, "Temp=%.2f Humi=%d%%", data.temp_centi / 100.0f, data.humi);
-
-        // TODO: put data to queue
-
+        lywsd02_data_t* data = (lywsd02_data_t*) om_data;
+        ESP_LOGD(TAG, "Temp=%.2f Humi=%d%%", data->temp_centi / 100.0f, data->humi);
+        xQueueOverwrite(data_queue, data);
     }
+    return 0;
 }
 
 static void ble_on_reset(int reason) {
@@ -100,6 +101,8 @@ void lywsd02_init() {
     sscanf(MAC_ADDR, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
         &peer_addr.val[5], &peer_addr.val[4], &peer_addr.val[3],
         &peer_addr.val[2], &peer_addr.val[1], &peer_addr.val[0]);
+    data_queue = xQueueCreate(1, sizeof(lywsd02_data_t));
+    assert(data_queue != 0);
 
     ESP_ERROR_CHECK(esp_nimble_hci_and_controller_init());
     nimble_port_init();
@@ -108,4 +111,13 @@ void lywsd02_init() {
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
     ESP_ERROR_CHECK(ble_svc_gap_device_name_set("espair"));
     nimble_port_freertos_init(blecent_host_task);
+}
+
+bool lywsd02_read_data(lywsd02_data_t* data, TickType_t xTicksToWait) {
+    if (data_queue == NULL) {
+        ESP_LOGE(TAG, "Queue uninitialized, call lywsd02_init() first");
+        return false;
+    }
+    BaseType_t ret = xQueueReceive(data_queue, data, xTicksToWait);
+    return ret == pdTRUE;
 }
