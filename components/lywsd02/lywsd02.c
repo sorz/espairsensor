@@ -11,35 +11,58 @@
 #define MAC_ADDR (CONFIG_LYWSD02_MAC_ADDR)
 
 static const char* TAG = "lywsd02";
-static ble_addr_t peer_addr;
+
+static uint16_t    CHAR_NOTI_HANDLE  = 0x004c;
+static uint8_t     CHAR_NOTI_VALUE[] = { 0x01, 0x00 };
+static uint16_t    CHAR_DATA_HANDLE  = 0x004b;
+static ble_addr_t  peer_addr;
 
 void ble_scan();
 
-int ble_on_gap_event(struct ble_gap_event *event, void *arg) {
+void ble_on_gap_event(struct ble_gap_event *event, void *arg) {
     if (event->type == BLE_GAP_EVENT_CONNECT) {
         if (event->connect.status == 0) {
             ESP_LOGI(TAG, "BLE connected");
+            // Subscribe notification
+            int ret = ble_gattc_write_flat(event->connect.conn_handle, 
+                CHAR_NOTI_HANDLE, CHAR_NOTI_VALUE, sizeof(CHAR_NOTI_VALUE), NULL, NULL);
+            if (ret) ESP_LOGW(TAG, "Fail to write char (%d)", ret);
         } else {
             ESP_LOGW(TAG, "BLE connect fail with %d", event->connect.status);
             ble_scan();
         }
+
     } else if (event->type == BLE_GAP_EVENT_DISCONNECT) {
         ESP_LOGI(TAG, "BLE disconnected (%d)", event->disconnect.reason);
+        ble_scan();
+
     } else if (event->type == BLE_GAP_EVENT_DISC) {
-        ESP_LOGI(TAG, "Device discovered: RSSI=%d ADDR=%d/%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-            event->disc.rssi, event->disc.addr.type,
-            event->disc.addr.val[5], event->disc.addr.val[4], event->disc.addr.val[3],
-            event->disc.addr.val[2], event->disc.addr.val[1], event->disc.addr.val[0]);
-
+        ESP_LOGI(TAG, "Device discovered: RSSI=%d", event->disc.rssi);
         ESP_ERROR_CHECK(ble_gap_disc_cancel());
-
         uint8_t own_addr_type;
         ESP_ERROR_CHECK(ble_hs_id_infer_auto(0, &own_addr_type));
-
         int ret = ble_gap_connect(own_addr_type, &event->disc.addr, 30000, NULL, ble_on_gap_event, NULL);
         if (ret) ESP_LOGE(TAG, "ble_gap_connect fail: %d", ret);
+
+    } else if (event->type == BLE_GAP_EVENT_NOTIFY_RX) {
+        uint16_t attr_handle = event->notify_rx.attr_handle;
+        uint16_t om_len = event->notify_rx.om->om_len;
+        uint8_t* om_data = event->notify_rx.om->om_data;
+        ESP_LOGD(TAG, "Notification received from %d, %d bytes", attr_handle, om_len);
+        if (attr_handle != CHAR_DATA_HANDLE) {
+            ESP_LOGI(TAG, "Unexpected char %d, ignored", attr_handle);
+            return;
+        }
+        if (om_len != 3) {
+            ESP_LOGW(TAG, "Unexpected char data length %d", om_len);
+            return;
+        }
+        lywsd02_data_t data = *(lywsd02_data_t*) om_data;
+        ESP_LOGD(TAG, "Temp=%.2f Humi=%d%%", data.temp_centi / 100.0f, data.humi);
+
+        // TODO: put data to queue
+
     }
-    return ESP_OK;
 }
 
 static void ble_on_reset(int reason) {
