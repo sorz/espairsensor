@@ -27,19 +27,6 @@ static nvs_handle_t nvs_esp  = 0;
 static httpd_handle_t httpd  = NULL;
 static metric_list_t metrics = {};
 
-void init_nvs() {
-    // Initialize NVS
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
-    // Open
-    ESP_ERROR_CHECK(nvs_open(TAG, NVS_READWRITE, &nvs_esp));
-}
-
 #define buf_printf(...) {\
         int n = snprintf(&buf[buf_pos], buf_size - buf_pos, __VA_ARGS__);\
         if (n < 0) {\
@@ -191,7 +178,7 @@ void init_wifi() {
 
 
 void metrics_init() {
-    init_nvs();
+    ESP_ERROR_CHECK(nvs_open(TAG, NVS_READWRITE, &nvs_esp));
     init_wifi();
     metrics_list_init(&metrics);
 }
