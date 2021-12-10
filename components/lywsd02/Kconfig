@@ -1,0 +1,9 @@
+menu "LYWSD02 Xiaomi E-Ink Clock Sensors"
+
+    config LYWSD02_MAC_ADDR
+        string "MAC Address"
+        default "01:23:de:ad:be:ef"
+        help
+            Bluetooth MAC address of LYWSD02.
+
+endmenu
