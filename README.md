@@ -18,19 +18,25 @@ This should be treated as a toy side project, not a serious one :)
 
 ## Sensors
 
-SM300D2:
-A cheap mulitsensor module, see the good summary at
-[alemela/SM300D2-air-quality](https://github.com/alemela/SM300D2-air-quality/).
+* SM300D2\
+  A cheap mulitsensor module, see the good summary at
+  [alemela/SM300D2-air-quality](https://github.com/alemela/SM300D2-air-quality/).
 
-Senseair S8:
-CO2 sensor that seems more reliable.
-[Their product page](https://senseair.com/products/size-counts/s8-residential/).
+* Senseair S8\
+  CO2 sensor that seems more reliable.
+  [Their product page](https://senseair.com/products/size-counts/s8-residential/).
+
+* LYWSD02\
+  Xiaomi E-Ink Display Clock w/ temperature & humidity sensors.
 
 I use SM300D2 & Senseair S8 because I already have them on hands. But I
 wouldn't recommand SM300D2 due to its unreliable readings of CO2, CH2O, and
 TVOC. Even its temperature reading is often higher than it should be, affected
 by itself heat I guess. In fact, I only take the PM2.5 readings from the module
 alhought all data are read in this project.
+
+LYWSD02 was added thereafter. Not like the others, it was connected via
+Bluetooth Low Energy. 
 
 ## Software
 
@@ -49,6 +55,8 @@ particular sensor devices.
   Read SM300D2 data from UART serial, put them on a queue.
 * [components/sense_air_s8/](/components/sense_air_s8/)\
   Provide functions to to read Senseair S8 data from UART serial.
+* [components/lywsd02/](/components/lywsd02/)\
+  Read temperature & humidity data from Xiaomi clock via Bluetooth.
 * [src/main.c](/src/main.c)\
   Keep reading data from modules and publish them as metrics.
  
