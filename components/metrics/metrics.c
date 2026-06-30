@@ -52,7 +52,7 @@ static esp_err_t http_request_handler(httpd_req_t *req) {
     snprintf(mac_str, sizeof(mac_str), "%02x%02x%02x%02x%02x%02x",
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-    httpd_resp_set_type(req, "application/openmetrics-text");
+    httpd_resp_set_type(req, "application/openmetrics-text; version=1.0.0; charset=utf-8");
     xSemaphoreTake(metrics.semphr, portMAX_DELAY);
 
     for (size_t i = 0; i < metrics.len; i++)
