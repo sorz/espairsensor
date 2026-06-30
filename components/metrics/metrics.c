@@ -4,6 +4,7 @@
 #include "freertos/semphr.h"
 #include "freertos/event_groups.h"
 #include "esp_log.h"
+#include "esp_mac.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_timer.h"
@@ -123,7 +124,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
         if (wifi_retry_num > 14) wifi_retry_num = 14;
         int delay_ms = powf(2.0f, wifi_retry_num);
         ESP_LOGI(TAG, "Failed to connect to AP %s, retry in %dms", WIFI_SSID, delay_ms);
-        vTaskDelay(delay_ms / portTICK_RATE_MS);
+        vTaskDelay(delay_ms / portTICK_PERIOD_MS);
         esp_wifi_connect();
         ESP_LOGI(TAG, "Retry to connect to the AP");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {

@@ -1,5 +1,4 @@
 #include "esp_log.h"
-#include "esp_nimble_hci.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "host/ble_hs.h"
@@ -104,8 +103,7 @@ void lywsd02_init() {
     data_queue = xQueueCreate(1, sizeof(lywsd02_data_t));
     assert(data_queue != 0);
 
-    ESP_ERROR_CHECK(esp_nimble_hci_and_controller_init());
-    nimble_port_init();
+    ESP_ERROR_CHECK(nimble_port_init());
     ble_hs_cfg.reset_cb = ble_on_reset;
     ble_hs_cfg.sync_cb = ble_on_sync;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;

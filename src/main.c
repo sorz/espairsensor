@@ -20,7 +20,7 @@ static const char* TAG = "main";
     metrics_put(&metric, METRIC_VALID_MILLIS);\
 }
 
-void task_sm300d2() {
+void task_sm300d2(void * pvParameters) {
     sm300d2_data_t data;
     metric_t metric = {
         .type = "gauge",
@@ -41,7 +41,7 @@ void task_sm300d2() {
     }
 }
 
-void task_sense_air_s8() {
+void task_sense_air_s8(void * pvParameters) {
     metric_t metric = {
         .name = "espair_senseairs8_co2_ppm",
         .type = "gauge",
@@ -54,11 +54,11 @@ void task_sense_air_s8() {
         if (value == -1) continue;
         metric.value = value;
         metrics_put(&metric, METRIC_VALID_MILLIS);
-        vTaskDelay(5000 / portTICK_RATE_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
 
-void task_lywsd02() {
+void task_lywsd02(void * pvParameters) {
     lywsd02_data_t data;
     metric_t metric = {
         .type = "gauge",

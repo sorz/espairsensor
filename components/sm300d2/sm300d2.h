@@ -40,7 +40,7 @@ void sm300d2_parse_data(sm300d2_packet_t* packet, sm300d2_data_t* data);
 
 void sm300d2_init();
 
-void sm300d2_receive_task();
+void sm300d2_receive_task(void * pvParameters);
 
 bool sm300d2_read_data(sm300d2_data_t* data, TickType_t xTicksToWait);
 

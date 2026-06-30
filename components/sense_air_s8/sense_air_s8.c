@@ -28,7 +28,7 @@ void sense_air_s8_init() {
     };
     int intr_alloc_flags = 0;
 
-    ESP_ERROR_CHECK(uart_driver_install(PORT_NUM, UART_FIFO_LEN * 2, 0, 0, NULL, intr_alloc_flags));
+    ESP_ERROR_CHECK(uart_driver_install(PORT_NUM, SOC_UART_FIFO_LEN * 2, 0, 0, NULL, intr_alloc_flags));
     ESP_ERROR_CHECK(uart_param_config(PORT_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(PORT_NUM, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 }
@@ -50,7 +50,7 @@ int16_t sense_air_s8_read() {
         ESP_LOGE(TAG, "Failed to write UART");
         return ESP_FAIL;
     }
-    len = uart_read_bytes(PORT_NUM, &resp, sizeof(resp), MAX_WAIT_MILLIS / portTICK_RATE_MS);
+    len = uart_read_bytes(PORT_NUM, &resp, sizeof(resp), MAX_WAIT_MILLIS / portTICK_PERIOD_MS);
     if (len < 0) {
         ESP_LOGW(TAG, "UART read failed, return %d", len);
         return ESP_FAIL;

@@ -55,7 +55,7 @@ void sm300d2_init() {
     };
     int intr_alloc_flags = 0;
 
-    ESP_ERROR_CHECK(uart_driver_install(PORT_NUM, UART_FIFO_LEN * 2, 0, 0, NULL, intr_alloc_flags));
+    ESP_ERROR_CHECK(uart_driver_install(PORT_NUM, SOC_UART_FIFO_LEN * 2, 0, 0, NULL, intr_alloc_flags));
     ESP_ERROR_CHECK(uart_param_config(PORT_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(PORT_NUM, UART_PIN_NO_CHANGE, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
@@ -66,7 +66,7 @@ void sm300d2_init() {
     assert(ret == pdPASS);
 }
 
-void sm300d2_receive_task() {
+void sm300d2_receive_task(void * pvParameters) {
     sm300d2_packet_t pkt;
     sm300d2_data_t data;
     sm300d2_data_t pts_sum = {};
@@ -98,7 +98,7 @@ void sm300d2_receive_task() {
         }
 
         ESP_LOGD(TAG, "Read UART, wait for %llims", wait_ms);
-        int len = uart_read_bytes(PORT_NUM, &pkt, sizeof(pkt), wait_ms / portTICK_RATE_MS);
+        int len = uart_read_bytes(PORT_NUM, &pkt, sizeof(pkt), wait_ms / portTICK_PERIOD_MS);
         ESP_LOGD(TAG, "UART read %d", len);
         if (len < 0) {
             ESP_LOGW(TAG, "UART read failed, return %d", len);
